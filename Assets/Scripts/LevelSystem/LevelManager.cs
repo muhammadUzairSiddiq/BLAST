@@ -10,6 +10,7 @@ public class LevelManager : MonoBehaviour
     [SerializeField] private UIManager uiManager;
     
     [Header("Level Setup")]
+    [SerializeField] private LevelCatalog levelCatalog;
     [SerializeField] private List<Level> levelPrefabs = new List<Level>();
     [SerializeField] private Transform levelRoot;
 
@@ -23,12 +24,13 @@ public class LevelManager : MonoBehaviour
 
     [Header("Settings")]
     [SerializeField] private string levelPrefKey = "CurrentLevel";
+    [SerializeField] private int maxLevels = 20;
+    [SerializeField] private bool loopAfterMaxLevel = false;
 
     [SerializeField] private bool test;
     [SerializeField] private int testLevel;
     
     private int _currentLevelIndex;
-    
     private Level _currentLevelInstance;
     
     private int _totalCubes;
@@ -44,12 +46,39 @@ public class LevelManager : MonoBehaviour
             Destroy(this);
             return;
         }
+
+        if (levelCatalog == null)
+            levelCatalog = Resources.Load<LevelCatalog>("LevelCatalog");
+
+        if (levelCatalog != null && levelCatalog.Count < maxLevels)
+            Debug.LogWarning(
+                $"LevelCatalog has {levelCatalog.Count} levels but maxLevels is {maxLevels}. " +
+                "Run BLAST > Build Level Catalog (Required For Play).");
+    }
+
+    private int TotalLevelCount => maxLevels;
+
+    private Level GetLevelPrefab(int index)
+    {
+        if (index < 0 || index >= maxLevels)
+            return null;
+
+        if (levelCatalog != null)
+        {
+            Level fromCatalog = levelCatalog.GetLevel(index);
+            if (fromCatalog != null)
+                return fromCatalog;
+        }
+
+        if (index < levelPrefabs.Count && levelPrefabs[index] != null)
+            return levelPrefabs[index];
+
+        return null;
     }
 
     private void Start()
     {
         InitDefaultColor();
-        
         LoadNextLevel();
     }
     
@@ -79,14 +108,6 @@ public class LevelManager : MonoBehaviour
         
         if (_currentLevelInstance.UseCustomTheme)
         {
-            // foreach (TargetImages image in levelThemesImages)
-            // {
-            //     Color baseColor = image.color;
-            //     image.color = baseColor * _currentLevelInstance.CustomColor;
-            //     
-            //     //ColorUtils.ApplyThemeTint(renderer1, _currentLevelInstance.CustomColor, 0.1f);
-            // }            
-        
             foreach (TargetSpriteRenderers renderer1 in levelThemesSprites)
             {
                 ColorUtils.ApplyThemeTint(renderer1.renderer, _currentLevelInstance.CustomColor, 0.3f);
@@ -104,14 +125,6 @@ public class LevelManager : MonoBehaviour
         }
         else
         {
-            // foreach (TargetImages image in levelThemesImages)
-            // {
-            //     Color baseColor = image.color;
-            //     image.color = baseColor * _currentLevelInstance.CustomColor;
-            //     
-            //     //ColorUtils.ApplyThemeTint(renderer1, _currentLevelInstance.CustomColor, 0.1f);
-            // }            
-        
             foreach (TargetSpriteRenderers renderer1 in levelThemesSprites)
             {
                 ColorUtils.ResetToOriginal(renderer1.renderer, renderer1.defaultColor);
@@ -133,7 +146,7 @@ public class LevelManager : MonoBehaviour
         }
         
         _currentLevelIndex = PlayerPrefs.GetInt(levelPrefKey, 0);
-        _currentLevelIndex = Mathf.Clamp(_currentLevelIndex, 0, levelPrefabs.Count - 1);
+        _currentLevelIndex = Mathf.Clamp(_currentLevelIndex, 0, TotalLevelCount - 1);
     }
 
     [ContextMenu("SpawnCurrentLevel")]
@@ -142,15 +155,15 @@ public class LevelManager : MonoBehaviour
         if (_currentLevelInstance != null)
             DestroyImmediate(_currentLevelInstance);
 
-        if (levelPrefabs.Count == 0)
+        Level prefab = GetLevelPrefab(_currentLevelIndex);
+        if (prefab == null)
         {
-            Debug.LogWarning("No level prefabs assigned in LevelManager!");
+            Debug.LogError(
+                $"Level {_currentLevelIndex + 1} is missing. In Unity menu run: BLAST > Build Level Catalog (Required For Play)");
             return;
         }
 
-        Level prefab = levelPrefabs[_currentLevelIndex];
         _currentLevelInstance = Instantiate(prefab, levelRoot);
-
         UpdateLevel();
     }
 
@@ -194,10 +207,9 @@ public class LevelManager : MonoBehaviour
         uiManager.ShowLevelCompleteUI(_currentLevelIndex, _currentLevelInstance.LevelBonus);
         
         _currentLevelIndex++;
-        if (_currentLevelIndex >= levelPrefabs.Count)
-        {
-            _currentLevelIndex = 0; 
-        }
+        int lastIndex = TotalLevelCount - 1;
+        if (_currentLevelIndex > lastIndex)
+            _currentLevelIndex = loopAfterMaxLevel ? 0 : lastIndex;
 
         PlayerPrefs.SetInt(levelPrefKey, _currentLevelIndex);
         PlayerPrefs.Save();
