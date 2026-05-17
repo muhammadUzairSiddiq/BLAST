@@ -766,6 +766,7 @@ MonoBehaviour:
   - {fileID: 428837316871405536, guid: 07aa1010cb9e4399ad93aa92a661ca7f, type: 3}
   - {fileID: 428837316871405536, guid: c280507e2ece4b49960cf68e09d0777c, type: 3}
   levelRoot: {fileID: 960374845}
+  loadingPanel: {fileID: 0}
   levelThemesRenderer:
   - renderer: {fileID: 218226527}
     defaultColor:
@@ -1800,7 +1801,7 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 166895812}
         m_TargetAssemblyTypeName: LevelManager, Assembly-CSharp
-        m_MethodName: LoadNextLevel
+        m_MethodName: ContinueToNextLevel
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}

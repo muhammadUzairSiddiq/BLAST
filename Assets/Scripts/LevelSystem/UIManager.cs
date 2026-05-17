@@ -116,6 +116,18 @@ public class UIManager : MonoBehaviour
         buttons.localScale = Vector3.one;
     }
 
+    public void PrepareForLevelTransition()
+    {
+        mainPanel.DOKill();
+        mainPanel.alpha = 0f;
+        mainPanel.interactable = false;
+        mainPanel.blocksRaycasts = false;
+
+        settings.gameObject.SetActive(false);
+        levelProgress.gameObject.SetActive(false);
+        bottomPanel.gameObject.SetActive(false);
+    }
+
     [ContextMenu("AnimateVictoryText")]
     private void AnimateVictoryText()
     {

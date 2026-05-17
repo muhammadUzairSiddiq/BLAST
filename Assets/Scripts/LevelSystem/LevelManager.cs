@@ -13,6 +13,7 @@ public class LevelManager : MonoBehaviour
     [SerializeField] private LevelCatalog levelCatalog;
     [SerializeField] private List<Level> levelPrefabs = new List<Level>();
     [SerializeField] private Transform levelRoot;
+    [SerializeField] private LevelLoadingPanel loadingPanel;
 
     [SerializeField] private List<TargetRenderers> levelThemesRenderer;
     [SerializeField] private List<TargetSpriteRenderers> levelThemesSprites;
@@ -50,6 +51,8 @@ public class LevelManager : MonoBehaviour
         if (levelCatalog == null)
             levelCatalog = Resources.Load<LevelCatalog>("LevelCatalog");
 
+        EnsureLoadingPanel();
+
         if (levelCatalog != null && levelCatalog.Count < maxLevels)
             Debug.LogWarning(
                 $"LevelCatalog has {levelCatalog.Count} levels but maxLevels is {maxLevels}. " +
@@ -57,6 +60,44 @@ public class LevelManager : MonoBehaviour
     }
 
     private int TotalLevelCount => maxLevels;
+
+    private void EnsureLoadingPanel()
+    {
+        if (loadingPanel != null)
+            return;
+
+        loadingPanel = FindFirstObjectByType<LevelLoadingPanel>(FindObjectsInactive.Include);
+        if (loadingPanel != null)
+            return;
+
+        Canvas canvas = FindFirstObjectByType<Canvas>();
+        RectTransform progressTemplate = FindProgressAreaTemplate();
+        Sprite face = Resources.Load<Sprite>("UI/face bg");
+
+        if (canvas == null || progressTemplate == null || face == null)
+        {
+            Debug.LogWarning(
+                "LevelLoadingPanel missing. Run BLAST > Create Level Loading Panel In Scene.");
+            return;
+        }
+
+        loadingPanel = LevelLoadingPanelFactory.Create(canvas.transform, progressTemplate, face);
+    }
+
+    private static RectTransform FindProgressAreaTemplate()
+    {
+        foreach (GameObject go in FindObjectsByType<GameObject>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+        {
+            if (go.name != "Progress Area")
+                continue;
+
+            RectTransform rt = go.GetComponent<RectTransform>();
+            if (rt != null)
+                return rt;
+        }
+
+        return null;
+    }
 
     private Level GetLevelPrefab(int index)
     {
@@ -223,6 +264,16 @@ public class LevelManager : MonoBehaviour
             Destroy(_currentLevelInstance.gameObject);
     }
     
+    public void ContinueToNextLevel()
+    {
+        uiManager.PrepareForLevelTransition();
+
+        if (loadingPanel != null)
+            loadingPanel.Show(LoadNextLevel);
+        else
+            LoadNextLevel();
+    }
+
     public void LoadNextLevel()
     {
         uiManager.ShowGameUi();
